@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VLib - Online Library</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      background-color: #f4f4f4;
+      color: #333;
+    }
+    h1 {
+      color: #2c3e50;
+    }
+    input, textarea, button {
+      padding: 0.5rem;
+      margin: 0.5rem 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .book {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .book h3 {
+      margin-top: 0;
+    }
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .delete-confirmation {
+      color: red;
+      font-size: 0.9em;
+    }
+    .actions button {
+      padding: 0.5rem 1rem;
+      border: none;
+      cursor: pointer;
+    }
+    .actions button:first-child {
+      background-color: #e74c3c;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>VLib - Online Library</h1>
+  <p>Browse, add, and delete books using our Flask API frontend.</p>
+
+  <button onclick="loadBooks()">Show All Books</button>
+
+  <div id="books"></div>
+
+  <h2>Add a New Book</h2>
+  <form id="addBookForm">
+    <input type="number" id="id" placeholder="ID" required />
+    <input type="text" id="isbn" placeholder="ISBN" required />
+    <input type="text" id="title" placeholder="Title" required />
+    <input type="text" id="subtitle" placeholder="Subtitle" required />
+    <input type="text" id="author" placeholder="Author" required />
+    <input type="text" id="published" placeholder="Published Date" required />
+    <input type="text" id="publisher" placeholder="Publisher" required />
+    <input type="number" id="pages" placeholder="Pages" required />
+    <textarea id="description" placeholder="Description" required></textarea>
+    <input type="text" id="website" placeholder="Website URL" required />
+    <button type="submit">Add Book</button>
+    <p id="addBookMsg"></p>
+  </form>
+
+  <script>
+    const apiBase = "http://localhost:5000/api/v1/books";
+
+    function loadBooks() {
+      console.log("Fetching books...");
+      fetch(apiBase + "/all")
+        .then((res) => {
+          console.log("Response received");
+          return res.json();
+        })
+        .then((data) => {
+          console.log("Books data:", data);
+          const booksDiv = document.getElementById("books");
+          booksDiv.innerHTML = "";
+          data.forEach((book) => {
+            booksDiv.innerHTML += `
+              <div class="book" id="book-${book.id}">
+                <h3>${book.title} (${book.id})</h3>
+                <p><strong>Author:</strong> ${book.author}</p>
+                <p><strong>Pages:</strong> ${book.pages}</p>
+                <p><strong>Publisher:</strong> ${book.publisher}</p>
+                <p><strong>Published:</strong> ${book.published}</p>
+                <p><strong>Description:</strong> ${book.description}</p>
+                <p><a href="${book.website}" target="_blank">More Info</a></p>
+                <div class="actions">
+                  <button onclick="confirmDelete(${book.id})">Delete</button>
+                  <span class="delete-confirmation" id="confirm-${book.id}"></span>
+                </div>
+              </div>
+            `;
+          });
+        });
+    }
+
+    function confirmDelete(bookId) {
+      const confirmSpan = document.getElementById(`confirm-${bookId}`);
+      confirmSpan.innerHTML = `
+        Are you sure? 
+        <button onclick="deleteBook(${bookId})">Yes</button>
+        <button onclick="cancelDelete(${bookId})">No</button>
+      `;
+    }
+
+    function cancelDelete(bookId) {
+      const confirmSpan = document.getElementById(`confirm-${bookId}`);
+      confirmSpan.innerHTML = "";
+    }
+
+    function deleteBook(bookId) {
+      fetch(`${apiBase}/${bookId}`, {
+        method: "DELETE",
+      })
+        .then((res) => res.json())
+        .then(() => loadBooks());
+    }
+
+    document.getElementById("addBookForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const book = {
+        id: +document.getElementById("id").value,
+        isbn: document.getElementById("isbn").value,
+        title: document.getElementById("title").value,
+        subtitle: document.getElementById("subtitle").value,
+        author: document.getElementById("author").value,
+        published: document.getElementById("published").value,
+        publisher: document.getElementById("publisher").value,
+        pages: +document.getElementById("pages").value,
+        description: document.getElementById("description").value,
+        website: document.getElementById("website").value
+      };
+
+      fetch(apiBase, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(book)
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          document.getElementById("addBookMsg").innerText = data.message || JSON.stringify(data);
+          loadBooks();
+        });
+    });
+  </script>
+</body>
+</html>
